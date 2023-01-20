@@ -409,6 +409,6 @@ MariaDB [nextcloud]> show tables;
 124 rows in set (0.000 sec)
 ````
 
-
+Fin du compte rendu.  Merci beaucoup. 
 
 
