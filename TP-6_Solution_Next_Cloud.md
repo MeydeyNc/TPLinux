@@ -140,6 +140,6 @@ server {
 
 * On va utiliser une commande pour bloquer les connexions directement vers http://web.tp5.linux : 
 ````
-[mmederic@web ~]$ sudo firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="10.105.1.13" accept'
+[mmederic@web ~]$ sudo firewall-cmd --permanent --add-rich-rule=rule family=ipv4 source address=10.105.1.13 accept
 ````
 
