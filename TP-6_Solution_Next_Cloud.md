@@ -119,7 +119,7 @@ server {
         proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
 
         # On définit la cible du proxying
-        proxy_pass http://<10.105.1.11>:80;
+        proxy_pass http://10.105.1.11:80;
     }
 
     # Deux sections location recommandés par la doc NextCloud
@@ -138,8 +138,59 @@ server {
 	10.105.1.13	www.nextcloud.tp6	#VMTP6LinuxLeoProxy
 ````
 
-* On va utiliser une commande pour bloquer les connexions directement vers http://web.tp5.linux : 
+* On va utiliser une commande pour autoriser les connexions depuis le proxy : 
 ````
-[mmederic@web ~]$ sudo firewall-cmd --permanent --add-rich-rule=rule family=ipv4 source address=10.105.1.13 accept
+[mmederic@web ~]$ sudo firewall-cmd --permanent --add-rich-rule=rule family=ipv4 source address=10.105.1.13 accept 
 ````
+On va ensuite bloquer tous les pings vers web. : 
+````
+sudo firewall-cmd --add-rich-rule='rule protocol value=icmp reject'
+[sudo] password for mmederic:
+success
+[mmederic@web ~]$ sudo firewall-cmd --list-all
+public (active)
+  target: default
+  icmp-block-inversion: no
+  interfaces: enp0s3 enp0s8
+  sources:
+  services: cockpit dhcpv6-client http https ssh
+  ports: 3306/tcp
+  protocols:
+  forward: yes
+  masquerade: no
+  forward-ports:
+  source-ports:
+  icmp-blocks:
+  rich rules:
+        rule family="ipv4" source address="10.105.1.13" accept
+        rule protocol value="icmp" reject
+````
+
+On essaie : 
+```` 
+PS C:\Users\Initi> ping 10.105.1.11
+
+Envoi d’une requête 'Ping'  10.105.1.11 avec 32 octets de données :
+Réponse de 10.105.1.11 : Impossible de joindre le port de destination.
+Réponse de 10.105.1.11 : Impossible de joindre le port de destination.
+Réponse de 10.105.1.11 : Impossible de joindre le port de destination.
+Réponse de 10.105.1.11 : Impossible de joindre le port de destination.
+
+Statistiques Ping pour 10.105.1.11:
+    Paquets : envoyés = 4, reçus = 4, perdus = 0 (perte 0%),
+````
+
+On essaie sur proxy : 
+````
+PS C:\Users\Initi> ping 10.105.1.13
+
+Envoi d’une requête 'Ping'  10.105.1.13 avec 32 octets de données :
+Réponse de 10.105.1.13 : octets=32 temps<1ms TTL=64
+Réponse de 10.105.1.13 : octets=32 temps<1ms TTL=64
+Réponse de 10.105.1.13 : octets=32 temps<1ms TTL=64
+Réponse de 10.105.1.13 : octets=32 temps<1ms TTL=64
+````
+
+## II. HTTPS 
+
 
