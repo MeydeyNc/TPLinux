@@ -4,7 +4,7 @@
 
 ### 1. Setup. 
 
-* On installe nginx : 
+ On installe nginx : 
 ````
 [mmederic@proxy ~]$ sudo dnf install nginx
 Installed:
@@ -133,12 +133,12 @@ server {
 }
 ````
 
-* Voici la ligne que nous ajoutons dans notre fichier hosts sur windows :
+ Voici la ligne que nous ajoutons dans notre fichier hosts sur windows :
 ````
 	10.105.1.13	www.nextcloud.tp6	#VMTP6LinuxLeoProxy
 ````
 
-* On va utiliser une commande pour autoriser les connexions depuis le proxy : 
+ On va utiliser une commande pour autoriser les connexions depuis le proxy : 
 ````
 [mmederic@web ~]$ sudo firewall-cmd --permanent --add-rich-rule=rule family=ipv4 source address=10.105.1.13 accept 
 ````
@@ -193,4 +193,169 @@ Réponse de 10.105.1.13 : octets=32 temps<1ms TTL=64
 
 ## II. HTTPS 
 
+````
+[mmederic@proxy certificats]$ sudo openssl genrsa -out ssl_certificate.key 2048
+[mmederic@proxy certificats]$ sudo openssl req -new -x509 -key ssl_certificate.key -out ssl_certificate.crt -days 365
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [XX]:fr
+State or Province Name (full name) []:NA
+Locality Name (eg, city) [Default City]:Brdx
+Organization Name (eg, company) [Default Company Ltd]:Ynov
+Organizational Unit Name (eg, section) []:BA
+Common Name (eg, your name or your server's hostname) []:Web
+Email Address []:.
+[mmederic@proxy certificats]$ ls
+ssl_certificate.crt  ssl_certificate.key
+````
+
+Voici un cat de notre fichier nginx.conf : 
+````
+    server {
+        listen       80;
+        server_name  web.tp6.linux;
+        return 301 https://$host$request_uri;
+    }
+
+# Settings for a TLS enabled server.
+
+    server {
+       listen       443 ssl http2;
+       listen       [::]:443 ssl http2;
+       server_name  web.tp6.linux;
+       root         /usr/share/nginx/html;
+
+       ssl_certificate "/etc/nginx/certs/ssl_certificate.crt";
+       ssl_certificate_key "/etc/nginx/certs/ssl_certificate.key";
+
+       location / {
+        proxy_set_header  Host $host;
+        proxy_set_header  X-Real-IP $remote_addr;
+        proxy_set_header  X-Forwarded-Proto https;
+        proxy_set_header  X-Forwarded-Host $remote_addr;
+        proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        proxy_pass http://10.105.1.13:80;
+
+       }
+
+        location /.well-known/carddav {
+        return 301 $scheme://$host/remote.php/dav;
+    }
+
+        location /.well-known/caldav {
+        return 301 $scheme://$host/remote.php/dav;
+    }
+````
+On s'assure ensuite de bien ouvrir le port 443 : 
+````
+[mmederic@proxy nginx]$ sudo firewall-cmd --add-port=443/tcp --permanent
+success
+[mmederic@proxy nginx]$ sudo firewall-cmd --reload
+success
+[mmederic@proxy nginx]$ sudo firewall-cmd --list-all
+public (active)
+  target: default
+  icmp-block-inversion: no
+  interfaces: enp0s3 enp0s8
+  sources:
+  services: cockpit dhcpv6-client ssh
+  ports: 80/tcp 443/tcp
+  protocols:
+  forward: yes
+  masquerade: no
+  forward-ports:
+  source-ports:
+  icmp-blocks:
+  rich rules:
+````
+
+voici ce que nous avons quand on curl depuis git bash : 
+````
+$ curl https://www.nextcloud.tp6
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+curl: (60) SSL certificate problem: self signed certificate
+More details here: https://curl.se/docs/sslcerts.html
+
+curl failed to verify the legitimacy of the server and therefore could not
+establish a secure connection to it. To learn more about this situation and
+how to fix it, please visit the web page mentioned above.
+````
+
+
+# Backup du Serveur. 
+
+## 1. Script de Backup. 
+
+On vient de créer un script. 
+
+Script en question : [tp6_backup.sh]($tp6_backup.sh)
+
+voici un cat de notre script : 
+````
+#!/bin/bash
+
+#This a script written by Mederic MARQUIE from B1A Ynov in Bordeaux.
+
+# The goal of this script is to create a backup save for our nextcloud solution.
+
+
+Maintenance_Mode_on="$(sudo -u mmederic php occ maintenance:mode --on) Going Maintenance Mode"
+Maintenance_Mode_off="$(sudo -u mmederic php occ maintenance:mode --off) Going Live Mode"
+Backup_folders="$(sudo rsync -Aavx /srv/ nextcloud-dirbkp_`date +"%Y%m%d"`.zip/) Creating backup folders. . ."
+Data_folders="$(sudo mysqldump --single-transaction --skip-column-statistics -h 10.105.1.12 -u nextcloud -p > nextcloud-sqlbkp_`date +"%Y%m%d"`.bak)"
+Move_backup_folders="$(sudo mv nextcloud* /srv/)"
+
+
+echo "Launching Backup Procedure..."
+
+echo ${Maintenance_Mode_on}
+
+echo ${Backup_folders}
+
+echo ${Data_folders}
+
+echo ${Move_Data_folders}
+
+echo ${Maintenance_Mode_off}
+
+echo "Backup Process done."
+````
+
+On crée un user pour la suite : 
+````
+[mmederic@web ~]$ sudo useradd backup -d /srv/backup/ -s /usr/bin/nologin
+useradd: Warning: missing or non-executable shell '/usr/bin/nologin'
+useradd: warning: the home directory /srv/backup/ already exists.
+useradd: Not copying any file from skel directory into it.
+[mmederic@web ~]$ sudo chown backup /srv/backup/
+[mmederic@web ~]$ cd /srv/
+[mmederic@web srv]$ ls -al
+total 8
+drwxr-xr-x.  4 root     root     115 Feb  6 18:43 .
+dr-xr-xr-x. 18 root     root     235 Dec  8 12:27 ..
+drwxr-xr-x.  2 backup   root       6 Jan 31 14:07 backup
+````
+
+
+## 3. Créer un service. 
+
+On crée un service : 
+````
+[mmederic@web system]$ sudo cat backup.service
+[Unit]
+Description=Backup service
+
+[Service]
+ExecStart=sh /srv/tp6_backup.sh
+User=backup
+Type=oneshot
+````
 
