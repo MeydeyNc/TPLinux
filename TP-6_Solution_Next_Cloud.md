@@ -359,3 +359,108 @@ User=backup
 Type=oneshot
 ````
 
+Nous créons ensuite le timer pour le service correspondant : 
+````
+[mmederic@web system]$ cat backup.timer
+[Unit]
+Description=Run service X
+
+[Timer]
+OnCalendar=*-*-* 4:00:00
+
+[Install]
+WantedBy=timers.target
+````
+
+On active l'utilisation du timer : 
+````
+[mmederic@web system]$ sudo systemctl daemon-reload
+[mmederic@web system]$ sudo systemctl start backup.timer
+[mmederic@web system]$ sudo systemctl enable backup.timer
+Created symlink /etc/systemd/system/timers.target.wants/backup.timer → /etc/systemd/system/backup.timer.
+[mmederic@web system]$ sudo systemctl status backup.timer
+● backup.timer - Run service X
+     Loaded: loaded (/etc/systemd/system/backup.timer; enabled; vendor preset: disabled)
+     Active: active (waiting) since Fri 2023-02-10 11:23:25 CET; 15s ago
+      Until: Fri 2023-02-10 11:23:25 CET; 15s ago
+    Trigger: Sat 2023-02-11 04:00:00 CET; 16h left
+   Triggers: ● backup.service
+
+Feb 10 11:23:25 web.tp5 systemd[1]: Started Run service X.
+[mmederic@web system]$ sudo systemctl list-timers
+NEXT                        LEFT          LAST                        PASSED       UNIT                         ACTIVATES
+Fri 2023-02-10 11:27:36 CET 3min 41s left n/a                         n/a          systemd-tmpfiles-clean.timer systemd-tmpfiles-clean.service
+Fri 2023-02-10 11:38:21 CET 14min left    n/a                         n/a          dnf-makecache.timer          dnf-makecache.service
+Sat 2023-02-11 00:00:00 CET 12h left      Fri 2023-02-10 09:12:21 CET 2h 11min ago logrotate.timer              logrotate.service
+Sat 2023-02-11 04:00:00 CET 16h left      n/a                         n/a          backup.timer                 backup.service
+
+4 timers listed.
+Pass --all to see loaded but inactive timers, too.
+````
+
+## II. NFS
+
+### 1. Serveur NFS. 
+
+Nous venons de créer notre VM. 
+
+On crée ensuite nos fichiers qui vont être partagés. 
+````
+[mmederic@storage ~]$ sudo mkdir /srv/nfs_shares
+[sudo] password for mmederic:
+[mmederic@storage ~]$ sudo mkdir /srv/nfs_shares/web.tp6.linux
+````
+
+On change l'ownerhip de nos fichiers pour permettre à l'autre vm de les manipuler aussi. 
+````
+[mmederic@storage srv]$ chown nobody /srv/nfs_shares/web.tp6.linux/
+chown: changing ownership of '/srv/nfs_shares/web.tp6.linux/': Operation not permitted
+[mmederic@storage srv]$ sudo !!
+sudo chown nobody /srv/nfs_shares/web.tp6.linux/
+````
+
+Notre fichier exports : 
+````
+[mmederic@storage srv]$ cat /etc/exports
+/srv/nfs_shares/web.tp6.linux   10.105.1.11(rw,sync,no_subtree_check)
+/home                           10.105.1.11(rw,sync,no_root_squash,no_subtree_check)
+````
+
+On mount nos fichiers de partage.
+
+````
+[mmederic@web system]$ sudo mount 10.105.1.11:/srv/nfs_shares/web.tp6.linux/ /nfs/genral/
+[mmederic@web system]$ df -h | grep tp6
+10.105.1.14:/srv/nfs_shares/web.tp6.linux  5.6G  1.2G  4.5G  21% /srv/backup
+````
+### 2. Client NFS.
+
+````
+[mmederic@web ~]$ sudo cat /etc/fstab | grep tp6
+10.105.1.14:/srv/nfs_shares/web.tp6.linux /nfs/general nfs auto,nofail,noatime,nolock,intr,tcp,actimeo=1800 0 0
+````
+
+On test la restauration des données :
+
+````
+[mmederic@web backup]$ sudo unzip nextcloud-dirbkp_20230117.zip
+````
+````
+[mmederic@web nextcloud-dirbkp_20230117]$ sudo mv nextcloud-sqlbkp_20230117.bak /srv/backup/
+[mmederic@web backup]$ sudo mv nextcloud-dirbkp_20230117/ /srv/backup/
+````
+````
+[mmederic@web backup]$ sudo rsync -Aax nextcloud-dirbkp_20230117 nextcloud/
+````
+````
+[mmederic@web backup]$ mysql -h 10.105.1.12 -u nextcloud -p nuagesuivant -e "DROP DATABASE nextcloud"
+mysql: [Warning] Using a password on the command line interface can be insecure.
+[mmederic@web backup]$ mysql -h 10.105.1.12 -u nextcloud -p nuagesuivant -e "CREATE DATABASE nextcloud"
+mysql: [Warning] Using a password on the command line interface can be insecure.
+[mmederic@web backup]$ mysql -h 10.105.1.12 -u nextcloud -p nuagesuivant nextcloud < nextcloud-sqlbkp_20230117.bak 
+mysql: [Warning] Using a password on the command line interface can be insecure.
+````
+
+
+# 3. Fail2ban 
+
