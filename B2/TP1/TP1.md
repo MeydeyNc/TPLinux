@@ -171,3 +171,74 @@ Python 3.11.7
 
 ### 2. Construire une image.
 
+Nous avons écrit un Dockerfile pour notre application Python :
+````
+[mmederic@tp1docker python_app_build]$ cat Dockerfile
+FROM ubuntu:latest
+
+RUN apt-get update -y
+
+RUN apt-get install -y python3
+
+RUN apt-get install pip -y
+
+RUN pip install emoji
+
+WORKDIR /app
+
+COPY . /app
+
+ENTRYPOINT ["python3","app.py"]
+````
+
+On a build notre image : 
+````
+[mmederic@tp1docker python_app_build]$ docker images | grep python_app
+python_app           version_de_ouf   ac4b5f2789d1   4 minutes ago   486MB
+````
+
+On lance ! 
+````
+[mmederic@tp1docker python_app_build]$ docker run python_app:version_de_ouf
+Un exemple pour les emojis 👍
+````
+
+## III. Docker Compose.
+
+On crée notre fichier docker-compose.yml : 
+````
+[mmederic@tp1docker compose_test]$ cat docker-compose.yml
+version: "3"
+
+services:
+  conteneur_nul:
+    image: debian
+    entrypoint: sleep 9999
+  conteneur_floresque:
+    image: debian
+    entrypoint: sleep 9999
+````
+
+On lance le docker-compose, ça tourne ! : 
+````
+[mmederic@tp1docker compose_test]$ docker compose ps
+NAME                                 IMAGE     COMMAND        SERVICE               CREATED         STATUS         PORTS
+compose_test-conteneur_floresque-1   debian    "sleep 9999"   conteneur_floresque   9 seconds ago   Up 8 seconds
+compose_test-conteneur_nul-1         debian    "sleep 9999"   conteneur_nul         9 seconds ago   Up 8 seconds
+````
+
+On va tenter un ping, après une update et un install de iputils-ping : 
+````
+root@306ce7ab5080:/# ping conteneur_floresque
+PING conteneur_floresque (172.18.0.2) 56(84) bytes of data.
+64 bytes from compose_test-conteneur_floresque-1.compose_test_default (172.18.0.2): icmp_seq=1 ttl=64 time=0.118 ms
+64 bytes from compose_test-conteneur_floresque-1.compose_test_default (172.18.0.2): icmp_seq=2 ttl=64 time=0.136 ms
+64 bytes from compose_test-conteneur_floresque-1.compose_test_default (172.18.0.2): icmp_seq=3 ttl=64 time=0.088 ms
+64 bytes from compose_test-conteneur_floresque-1.compose_test_default (172.18.0.2): icmp_seq=4 ttl=64 time=0.098 ms
+^C
+--- conteneur_floresque ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3006ms
+rtt min/avg/max/mdev = 0.088/0.110/0.136/0.018 ms
+````
+
+It works ! Très pratique Docker, c'est sympa !
