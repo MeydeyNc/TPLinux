@@ -65,6 +65,6 @@ server {
 
 Je n'ai toujours pas réussi à résoudre le problème, mais je vais continuer à chercher.
 
-Entre temps j'ai continué à update les scripts pour tenter de tout faire avec, mais je n'ai pas réussi à résoudre les soucis précédents.
+Entre temps j'ai continué à update les scripts avec le keepalived par exemple pour tenter de tout faire avec, mais je n'ai pas réussi à résoudre les soucis précédents.
 
 ![Alt Text](./images/hurtedcat.jpg)
