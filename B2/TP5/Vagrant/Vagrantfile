@@ -1,0 +1,61 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+
+    config.vm.box = "generic/rocky9"
+    config.ssh.insert_key = false
+  
+    # On commence avec web1.tp5
+    config.vm.define "web1.tp5" do |web1|
+      web1.vm.hostname = "web1.tp5"
+      web1.vm.network "private_network", type: "static", ip: "10.5.1.11"
+      
+      web1.vm.provider "virtualbox" do |vb|
+        vb.memory = "1024"
+      end
+      
+      web1.vm.provider "virtualbox" do |vb|
+        vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+        vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+      end
+      
+      web1.vm.synced_folder "./web", "/var/web"
+    end
+    
+    # Ici rp1.tp5
+    config.vm.define "rp1.tp5" do |rp1|
+      rp1.vm.hostname = "rp1.tp5"
+      rp1.vm.network "private_network", type: "static", ip: "10.5.1.111"
+      
+      rp1.vm.provider "virtualbox" do |vb|
+        vb.memory = "1024"
+      end
+      
+      rp1.vm.provider "virtualbox" do |vb|
+        vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+        vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+      end
+      
+      rp1.vm.synced_folder "./rp", "/var/rp"
+    end
+    
+    # Config de db1.tp5
+    config.vm.define "db1.tp5" do |db1|
+      db1.vm.hostname = "db1.tp5"
+      db1.vm.network "private_network", type: "static", ip: "10.5.1.211"
+      
+      db1.vm.provider "virtualbox" do |vb|
+        vb.memory = "1024"
+      end
+      
+      db1.vm.provider "virtualbox" do |vb|
+        vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+        vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+      end
+      
+      db1.vm.synced_folder "./db", "/var/db"
+    end
+  
+  end
+  

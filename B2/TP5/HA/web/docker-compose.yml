@@ -1,0 +1,20 @@
+version: "3"
+
+services:
+  php:
+    build:
+      context: php/
+    volumes:
+      - ./src:/var/www/html
+    ports:
+      - "80:80"
+  db:
+    image: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=dbc
+      - MYSQL_USER=meo
+      - MYSQL_PASSWORD=dbc
+      - MYSQL_DATABASE=meo
+    volumes:
+      - "./db/init.sql:/docker-entrypoint-initdb.d/init.sql" 
+
