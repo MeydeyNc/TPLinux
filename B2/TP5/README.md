@@ -2,7 +2,11 @@
 
 ## Partie I - Setup du TP :
 
+![Setup](./images/jenkins-prepare-the-finest-carpet.jpeg)
+
 On va donc faire un jolie Vagrant qui se trouve [ici](./Vagrant/Vagrantfile).
+
+Dans le dossier Vagrant, on retrouvera tous les scripts et fichiers de confs pour les vagrant.
 
 Et nos scripts : 
 
@@ -26,7 +30,11 @@ Et voila, c'est tout.
 
 ## Partie II - Haute Disponibilité : 
 
+![Not Higly Available](./images/Anavailable.jpeg)
+
 On prépare nos nouvelles VMs avec un nouveau Vagrantfile [ici](./HA/Vagrantfile).
+
+Dans le dossier HA on retrouvera tous les dossiers de scripts et les fichiers de confs utilisés pour la 2ème partie du TP.
 
 On vient ensuite de modifier le fichier de conf du reverse proxy : 
 
@@ -58,3 +66,5 @@ server {
 Je n'ai toujours pas réussi à résoudre le problème, mais je vais continuer à chercher.
 
 Entre temps j'ai continué à update les scripts pour tenter de tout faire avec, mais je n'ai pas réussi à résoudre les soucis précédents.
+
+![Alt Text](./images/hurtedcat.jpg)
